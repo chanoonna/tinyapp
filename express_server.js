@@ -8,8 +8,14 @@ const urlDatabase = {
   '9sm5xK': `http://www.google.com`,
 };
 
+// Algorithm from < https://stackoverflow.com/a/19964557 >
 const generateRandomString = function() {
-  return Math.random().toString(36).substr(2, 5);
+  const code = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const generated =
+    Array(6).fill('').map(x => code.charAt(Math.floor(Math.random() * code.length))).join('');
+
+  const result = Object.prototype.hasOwnProperty.call(urlDatabase, generated) ? generateRandomString() : generated;
+  return result;
 };
 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -33,23 +39,25 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-app.post('/urls', (req, res) => {
-  console.log(req.body);
-  res.send('Ok');
-});
-
 app.get('/urls/new', (req, res) => {
   res.render('urls_new');
 });
 
 app.post('/urls', (req, res) => {
-  console.log(req.body);
-  res.send('Ok');
+  const short = generateRandomString();
+  urlDatabase[short] = req.body.longURL;
+  const templateVars = { shortURL: short, longURL: urlDatabase[short] };
+  res.render('urls_show', templateVars);
 });
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render('urls_show', templateVars);
+});
+
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
 });
 
 app.listen(PORT, () => {
