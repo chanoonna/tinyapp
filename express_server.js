@@ -8,6 +8,10 @@ const urlDatabase = {
   '9sm5xK': `http://www.google.com`,
 };
 
+const generateRandomString = function() {
+  return Math.random().toString(36).substr(2, 5);
+};
+
 app.use(bodyParser.urlencoded({extended: true}));
 
 app.set('view engine', 'ejs');
