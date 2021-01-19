@@ -44,11 +44,21 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.get('/urls/:shortURL', (req, res) => {
+  if (!Object.prototype.hasOwnProperty.call(urlDatabase, req.params.shortURL)) {
+    res.statusCode = 404;
+    res.send('404 page not found');
+    return;
+  }
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render('urls_show', templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
+  if (!Object.prototype.hasOwnProperty.call(urlDatabase, req.params.shortURL)) {
+    res.statusCode = 404;
+    res.send('404 page not found');
+    return;
+  }
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
 });
@@ -64,6 +74,18 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   delete urlDatabase[req.params.shortURL];
   const templateVars = { urls: urlDatabase };
   res.render('urls_index', templateVars);
+});
+
+app.post('/urls/:shortURL/update', (req, res) => {
+  if (req.body.longURL.length === 0) {
+    res.send("<script>alert(\"Please provide URL\"); </script>");
+    const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+    res.render('urls_show', templateVars);
+  } else {
+    urlDatabase[req.params.shortURL] = req.body.longURL;
+    const templateVars = { urls: urlDatabase };
+    res.render('urls_index', templateVars);
+  }
 });
 
 app.listen(PORT, () => {
