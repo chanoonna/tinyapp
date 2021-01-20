@@ -9,15 +9,14 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
-      <% if (username === undefined) { %>
-        <form class="form-inline my-2 my-lg-0" action="/login" method="POST">
-          <input class="form-control form-control-sm mr-md-1" name="username" type="text" placeholder="Username" aria-label="Username">
-          <button class="btn btn-outline-primary btn-sm" type="submit">Login</button>
+      <% if (user === undefined) { %>
+        <form class="form-inline my-2 my-lg-0" action="/signin" method="GET">
+          <button class="btn btn-outline-primary btn-sm" type="submit">Sign in</button>
         </form>
       <% } else { %>
-        <a>Logged in as: <b><%= username %></b></a>
-        <form class="form-inline my-2 my-lg-0 ml-2" action="/logout" method="POST">
-          <button class="btn btn-outline-primary btn-sm" type="submit">Logout</button>
+        <a>Signed in as: <b><%= user %></b></a>
+        <form class="form-inline my-2 my-lg-0 ml-2" action="/signout" method="POST">
+          <button class="btn btn-outline-primary btn-sm" type="submit">Sign out</button>
         </form>
       <% } %>
     </div>

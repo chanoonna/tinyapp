@@ -1,15 +1,4 @@
-const users = { 
-  "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
-  },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
-    password: "dishwasher-funk"
-  }
-};
+const { generateCode } = require('../src/helper');
 
 class TinyUser {
   constructor(id, email, password) {
@@ -17,6 +6,14 @@ class TinyUser {
     this.email = email;
     this.password = password;
   };
+
+  getID = function() {
+    return this.id;
+  };
+
+  getEmail = function() {
+    return this.email;
+  }
 };
 
 class UserDataBase {
@@ -26,15 +23,9 @@ class UserDataBase {
 
   addUser = function(email, password) {
     const id = generateCode(10, this.users);
-    const exist = this.exist(email);
-    
-    if (exist) {
-      return false;
-    } else {
-      const user = new TinyUser(id, email, password);
-      this.users[id] = user;
-    }
-    return true;
+    const user = new TinyUser(id, email, password);
+    this.users[id] = user;
+    return user;
   };
 
   delUser = function(id) {
@@ -52,14 +43,19 @@ class UserDataBase {
   getUser = function(id) {
     return this.users[id];
   };
+  
+  findUserByID = function(id) {
+    Object.prototype.hasOwnProperty.call(this.users, id);
+    return Object.prototype.hasOwnProperty.call(this.users, id) ? this.users[id] : undefined;
+  }
 
-  exist = function(email) {
-    for (const id of this.users) {
-      if ([id].email === email) {
-        return false;
+  findUserByEmail = function(email) {
+    for (const id in this.users) {
+      if (this.users[id].email === email) {
+        return this.users[id];
       }
     }
-    return true;
+    return undefined;
   }
 };
 

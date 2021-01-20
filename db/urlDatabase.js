@@ -1,17 +1,4 @@
-const urlDatabase = {
-  'b2xVn2': `http://www.lighthouselabs.ca`,
-  '9sm5xK': `http://www.google.com`,
-};
-
-// Algorithm from < https://stackoverflow.com/a/19964557 >
-const generateCode = function generateRandomString() {
-  const code = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const generated =
-    Array(6).fill('').map(x => code.charAt(Math.floor(Math.random() * code.length))).join('');
-
-  const result = Object.prototype.hasOwnProperty.call(urlDatabase, generated) ? generateRandomString() : generated;
-  return result;
-};
+const { generateCode } = require('../src/helper');
 
 class URLDataBase {
   constructor() {
@@ -19,7 +6,7 @@ class URLDataBase {
   };
 
   addURL = function (longURL) {
-    const url = generateCode();
+    const url = generateCode(6, this.urls);
     this.urls[url] = longURL;
     return url;
   };

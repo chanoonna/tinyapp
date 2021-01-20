@@ -15,8 +15,16 @@ const server = function startExpressServer() {
 };
 
 const app = server();
-const urls = new URLDataBaseClass.URLDataBase();
-const users = new UserDataBaseClass.UserDataBase();
+const urls = new URLDataBaseClass.URLDataBase();                  // URL Database
+const users = new UserDataBaseClass.UserDataBase();               // User Database
+
+const checkCookie = function(cookie) {
+  if (!cookie || users.findUserByID(cookie) === undefined) {
+    return undefined;
+  }
+
+  return users.getUser(cookie).getEmail();
+};
 
 app.get('/', (req, res) => {
   res.send('Hello.');
@@ -31,18 +39,18 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  const templateVars = { urls: urls.getDB(), username: req.cookies['username'], };
+  const user = checkCookie(req.cookies['id']);
+  const templateVars = { urls: urls.getDB(), user, };
   res.render('urls_index', templateVars);
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  const longURL = urls.getURL(req.params.shortURL);
-  res.redirect(longURL);
+  res.redirect(urls.getURL(req.params.shortURL));
 });
 
 app.get('/urls/new', (req, res) => {
-  const templateVars = { username: req.cookies['username'], };
-  res.render('urls_new', templateVars);
+  const user = checkCookie(req.cookies['id']);
+  res.render('urls_new', { user, });
 });
 
 app.get('/urls/:shortURL', (req, res) => {
@@ -52,61 +60,88 @@ app.get('/urls/:shortURL', (req, res) => {
     res.send('404 page not found');
     return;
   }
-  const templateVars = {
-    shortURL,
-    longURL: urls.getURL(shortURL),
-    username: req.cookies['username'],
-  };
+  const user = checkCookie(req.cookies['id']);
+  const longURL = urls.getURL(shortURL);
+  const templateVars = { shortURL, longURL, user, };
   res.render('urls_show', templateVars);
 });
 
-app.get('/register', (req, res) => {
-  const templateVars = { username: req.cookies['username'], };
-  res.render('urls_register', templateVars);
+app.get('/signup', (req, res) => {
+  const user = checkCookie(req.cookies['id']);
+  const templateVars = { user, email: false, password: false };
+  res.render('urls_signup', templateVars);
+});
+
+app.get('/signin', (req, res) => {
+  const user = checkCookie(req.cookies['id']);
+  const templateVars = { user, invalid: false };
+  res.render('urls_signin', templateVars);
 });
 
 app.post('/urls', (req, res) => {
   const longURL = req.body.longURL;
   const shortURL = urls.addURL(longURL);
-  const templateVars = {
-    shortURL,
-    longURL,
-    username: req.cookies['username'],
-  };
+  const user = checkCookie(req.cookies['id']);
+  const templateVars = { shortURL, longURL, user, };
   res.render('urls_show', templateVars);
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => {
   const shortURL = req.params.shortURL;
   urls.delURL(shortURL);
-  const templateVars = { urls: urls.getDB(), username: req.cookies['username'], };
+  const user = checkCookie(req.cookies['id']);
+  const templateVars = { urls: urls.getDB(), user, };
   res.render('urls_index', templateVars);
 });
 
 app.post('/urls/:shortURL/update', (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = req.body.longURL;
+  
+  urls.fixURL(shortURL, longURL);
+  const user = checkCookie(req.cookies['id']);
 
-  if (longURL === 0) {
-    res.send("<script>alert(\"Please provide URL\"); </script>");
+  const templateVars = { urls: urls.getDB(), user, };
+  res.render('urls_index', templateVars);
+});
+
+app.post('/signin', (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = users.findUserByEmail(email);
+  
+  if (user === undefined || user.password !== password) {
+    res.render('urls_signin', { user: undefined, invalid: true });
+    return;
   } else {
-    urls.fixURL(shortURL, longURL);
+    res.cookie('id', user.id);
+    const templateVars = { urls: urls.getDB(), user: user.getEmail() };
+    res.render('urls_index', templateVars);
   }
-  const templateVars = { urls: urls.getDB(), username: req.cookies['username'], };
-  res.render('urls_index', templateVars);
 });
 
-app.post('/login', (req, res) => {
-  const username = req.body.username;
-  res.cookie('username', username);
-  const templateVars = { urls: urls.getDB(), username, };
-  res.render('urls_index', templateVars);
+app.post('/signout', (req, res) => {
+  res.clearCookie('id', {expires: new Date(1), path: '/' });
+  return res.status(200).redirect('/urls');
 });
 
-app.post('/logout', (req, res) => {
-  res.clearCookie('username', {expires: new Date(1), path: '/' });
-  console.log(req.cookies['username']);
-  return res.status(200).redirect('/urls')
+app.post('/signup', (req, res) => {
+  const email = req.body.email;
+  const password1 = req.body.password1;
+  const password2 = req.body.password2;
+  const user = checkCookie(req.cookies['id']);
+
+  if (users.findUserByEmail(email) !== undefined) {
+    res.render('urls_signup', { email: true, password: false, user, });
+    return;    
+  } else if (password1 !== password2) {
+    res.render('urls_signup', { email: false, password: true, user, })
+  } else {
+    const user = users.addUser(email, password1);
+    res.cookie('id', user.id);
+    const templateVars = { urls: urls.getDB(), user: user.getEmail() };
+    res.render('urls_index', templateVars);
+  }
 });
 
 app.listen(PORT, () => {
