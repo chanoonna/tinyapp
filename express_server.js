@@ -1,33 +1,32 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const app = express();
+const cookieParser = require('cookie-parser');
 const PORT = 8080;
+const {
+  getDB,
+  getURL,
+  addURL,
+  delURL,
+  fixURL,
+} = require('./db/urlDatabase');
 
-const urlDatabase = {
-  'b2xVn2': `http://www.lighthouselabs.ca`,
-  '9sm5xK': `http://www.google.com`,
+const server = function startExpressServer() {
+  const server = express();
+  server.set('view engine', 'ejs');
+  server.use(bodyParser.urlencoded({extended: true}));
+  server.use(cookieParser());
+
+  return server;
 };
 
-// Algorithm from < https://stackoverflow.com/a/19964557 >
-const generateRandomString = function() {
-  const code = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const generated =
-    Array(6).fill('').map(x => code.charAt(Math.floor(Math.random() * code.length))).join('');
-
-  const result = Object.prototype.hasOwnProperty.call(urlDatabase, generated) ? generateRandomString() : generated;
-  return result;
-};
-
-app.use(bodyParser.urlencoded({extended: true}));
-
-app.set('view engine', 'ejs');
+const app = server();
 
 app.get('/', (req, res) => {
   res.send('Hello.');
 });
 
 app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase);
+  res.json(getDB());
 });
 
 app.get('/hello', (req, res) => {
@@ -35,57 +34,76 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: getDB(), username: req.cookies['username'], };
   res.render('urls_index', templateVars);
 });
 
 app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
+  const templateVars = { username: req.cookies['username'], };
+  res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:shortURL', (req, res) => {
-  if (!Object.prototype.hasOwnProperty.call(urlDatabase, req.params.shortURL)) {
+  const shortURL = req.params.shortURL;
+  if (!Object.prototype.hasOwnProperty.call(getDB(), shortURL)) {
     res.statusCode = 404;
     res.send('404 page not found');
     return;
   }
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const templateVars = {
+    shortURL,
+    longURL: getURL(shortURL),
+    username: req.cookies['username'],
+  };
   res.render('urls_show', templateVars);
 });
 
-app.get("/u/:shortURL", (req, res) => {
-  if (!Object.prototype.hasOwnProperty.call(urlDatabase, req.params.shortURL)) {
-    res.statusCode = 404;
-    res.send('404 page not found');
-    return;
-  }
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
-});
-
 app.post('/urls', (req, res) => {
-  const short = generateRandomString();
-  urlDatabase[short] = req.body.longURL;
-  const templateVars = { shortURL: short, longURL: urlDatabase[short] };
+  const longURL = req.body.longURL;
+  const shortURL = addURL(longURL);
+  const templateVars = {
+    shortURL,
+    longURL,
+    username: req.cookies['username'],
+  };
   res.render('urls_show', templateVars);
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  const templateVars = { urls: urlDatabase };
+  const shortURL = req.params.shortURL;
+  delURL(shortURL);
+  const templateVars = { urls: getDB(), username: req.cookies['username'], };
   res.render('urls_index', templateVars);
 });
 
 app.post('/urls/:shortURL/update', (req, res) => {
-  if (req.body.longURL.length === 0) {
+  const shortURL = req.params.shortURL;
+  const longURL = req.body.longURL;
+
+  if (longURL === 0) {
     res.send("<script>alert(\"Please provide URL\"); </script>");
-    const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-    res.render('urls_show', templateVars);
   } else {
-    urlDatabase[req.params.shortURL] = req.body.longURL;
-    const templateVars = { urls: urlDatabase };
-    res.render('urls_index', templateVars);
+    fixURL(shortURL, longURL);
   }
+  const templateVars = { urls: getDB(), username: req.cookies['username'], };
+  res.render('urls_index', templateVars);
+});
+
+app.post('/login', (req, res) => {
+  const username = req.body.username;
+  res.cookie('username', username);
+  const templateVars = { urls: getDB(), username, };
+  res.render('urls_index', templateVars);
+});
+
+app.post('/logout', (req, res) => {
+  if (req.cookies['username']) {
+    res.clearCookie('username', {expires: new Date(1), path: '/' });
+    console.log(req.cookies['username']);
+    return res.status(200).redirect('/urls')
+  }
+  const templateVars = { urls: getDB(), username: req.cookies['username'], };
+  res.render('urls_index', templateVars);
 });
 
 app.listen(PORT, () => {
