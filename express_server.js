@@ -58,6 +58,11 @@ app.get('/urls/:shortURL', (req, res) => {
   res.render('urls_show', templateVars);
 });
 
+app.get('/register', (req, res) => {
+  const templateVars = { username: req.cookies['username'], };
+  res.render('urls_register', templateVars);
+});
+
 app.post('/urls', (req, res) => {
   const longURL = req.body.longURL;
   const shortURL = addURL(longURL);
@@ -97,13 +102,9 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-  if (req.cookies['username']) {
-    res.clearCookie('username', {expires: new Date(1), path: '/' });
-    console.log(req.cookies['username']);
-    return res.status(200).redirect('/urls')
-  }
-  const templateVars = { urls: getDB(), username: req.cookies['username'], };
-  res.render('urls_index', templateVars);
+  res.clearCookie('username', {expires: new Date(1), path: '/' });
+  console.log(req.cookies['username']);
+  return res.status(200).redirect('/urls')
 });
 
 app.listen(PORT, () => {
