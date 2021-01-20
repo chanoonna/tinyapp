@@ -4,7 +4,7 @@ const urlDatabase = {
 };
 
 // Algorithm from < https://stackoverflow.com/a/19964557 >
-const getRandomStr = function generateRandomString() {
+const generateCode = function generateRandomString() {
   const code = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const generated =
     Array(6).fill('').map(x => code.charAt(Math.floor(Math.random() * code.length))).join('');
@@ -13,33 +13,34 @@ const getRandomStr = function generateRandomString() {
   return result;
 };
 
-const addURL = function addNewURLtoDatabase(longURL) {
-  const url = getRandomStr();
-  urlDatabase[url] = longURL;
-  return url;
-};
+class URLDataBase {
+  constructor() {
+    this.urls = {};
+  };
 
-const delURL = function deleteURLFromDatabase(shortURL) {
-  delete urlDatabase[shortURL];
-};
-
-const fixURL = function updateExistingURL(shortURL, longURL) {
-  urlDatabase[shortURL] = longURL;
-}
-
-const getDB = function getWholeDatabase() {
-  const returnObject = { ...urlDatabase };
-  return returnObject;
-};
-
-const getURL = function getLongURLWithShortURL(shortURL) {
-  return urlDatabase[shortURL];
+  addURL = function (longURL) {
+    const url = generateCode();
+    this.urls[url] = longURL;
+    return url;
+  };
+  
+  delURL = function (shortURL) {
+    delete this.urls[shortURL];
+  };
+  
+  fixURL = function (shortURL, longURL) {
+    this.urls[shortURL] = longURL;
+  }
+  
+  getDB = function () {
+    return { ...this.urls };
+  };
+  
+  getURL = function (shortURL) {
+    return this.urls[shortURL];
+  };
 };
 
 module.exports = {
-  getDB,
-  getURL,
-  addURL,
-  delURL,
-  fixURL,
+  URLDataBase,
 };

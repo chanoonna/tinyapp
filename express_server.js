@@ -2,13 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const PORT = 8080;
-const {
-  getDB,
-  getURL,
-  addURL,
-  delURL,
-  fixURL,
-} = require('./db/urlDatabase');
+const URLDataBaseClass = require('./db/urlDatabase');
+const UserDataBaseClass = require('./db/userDatabase');
 
 const server = function startExpressServer() {
   const server = express();
@@ -20,13 +15,15 @@ const server = function startExpressServer() {
 };
 
 const app = server();
+const urls = new URLDataBaseClass.URLDataBase();
+const users = new UserDataBaseClass.UserDataBase();
 
 app.get('/', (req, res) => {
   res.send('Hello.');
 });
 
 app.get('/urls.json', (req, res) => {
-  res.json(getDB());
+  res.json(urls.getDB());
 });
 
 app.get('/hello', (req, res) => {
@@ -34,8 +31,13 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  const templateVars = { urls: getDB(), username: req.cookies['username'], };
+  const templateVars = { urls: urls.getDB(), username: req.cookies['username'], };
   res.render('urls_index', templateVars);
+});
+
+app.get('/u/:shortURL', (req, res) => {
+  const longURL = urls.getURL(req.params.shortURL);
+  res.redirect(longURL);
 });
 
 app.get('/urls/new', (req, res) => {
@@ -45,14 +47,14 @@ app.get('/urls/new', (req, res) => {
 
 app.get('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
-  if (!Object.prototype.hasOwnProperty.call(getDB(), shortURL)) {
+  if (!Object.prototype.hasOwnProperty.call(urls.getDB(), shortURL)) {
     res.statusCode = 404;
     res.send('404 page not found');
     return;
   }
   const templateVars = {
     shortURL,
-    longURL: getURL(shortURL),
+    longURL: urls.getURL(shortURL),
     username: req.cookies['username'],
   };
   res.render('urls_show', templateVars);
@@ -65,7 +67,7 @@ app.get('/register', (req, res) => {
 
 app.post('/urls', (req, res) => {
   const longURL = req.body.longURL;
-  const shortURL = addURL(longURL);
+  const shortURL = urls.addURL(longURL);
   const templateVars = {
     shortURL,
     longURL,
@@ -76,8 +78,8 @@ app.post('/urls', (req, res) => {
 
 app.post('/urls/:shortURL/delete', (req, res) => {
   const shortURL = req.params.shortURL;
-  delURL(shortURL);
-  const templateVars = { urls: getDB(), username: req.cookies['username'], };
+  urls.delURL(shortURL);
+  const templateVars = { urls: urls.getDB(), username: req.cookies['username'], };
   res.render('urls_index', templateVars);
 });
 
@@ -88,16 +90,16 @@ app.post('/urls/:shortURL/update', (req, res) => {
   if (longURL === 0) {
     res.send("<script>alert(\"Please provide URL\"); </script>");
   } else {
-    fixURL(shortURL, longURL);
+    urls.fixURL(shortURL, longURL);
   }
-  const templateVars = { urls: getDB(), username: req.cookies['username'], };
+  const templateVars = { urls: urls.getDB(), username: req.cookies['username'], };
   res.render('urls_index', templateVars);
 });
 
 app.post('/login', (req, res) => {
   const username = req.body.username;
   res.cookie('username', username);
-  const templateVars = { urls: getDB(), username, };
+  const templateVars = { urls: urls.getDB(), username, };
   res.render('urls_index', templateVars);
 });
 
