@@ -68,7 +68,13 @@ app.get('/urls/:shortURL', (req, res) => {
 
 app.get('/signup', (req, res) => {
   const user = checkCookie(req.cookies['id']);
-  const templateVars = { user, email: false, password: false };
+
+  if (user !== undefined) {
+    res.status(200).redirect('/signin');
+    return;
+  }
+
+  const templateVars = { user, email: false, other: false };
   res.render('urls_signup', templateVars);
 });
 
@@ -132,10 +138,11 @@ app.post('/signup', (req, res) => {
   const user = checkCookie(req.cookies['id']);
 
   if (users.findUserByEmail(email) !== undefined) {
-    res.render('urls_signup', { email: true, password: false, user, });
+    res.status(400).render('urls_signup', { email: true, other: false, user, });
     return;    
-  } else if (password1 !== password2) {
-    res.render('urls_signup', { email: false, password: true, user, })
+  } else if (password1 !== password2 || password1.length === 0 || email.length === 0) {
+    res.status(400).render('urls_signup', { email: false, other: true, user, })
+    return;
   } else {
     const user = users.addUser(email, password1);
     res.cookie('id', user.id);
