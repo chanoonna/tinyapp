@@ -10,12 +10,12 @@
   <%- include('partials/_header', user) %>
 
   <div class="card text-center mb-3" style="border: 0px;">
-    <h5 class="mt-2">Sign in</h5>
+    <h5 class="mt-2">Log in</h5>
     <div class="d-flex justify-content-center">
       <% if (user) { %>
         <h6>You are already with us!</h6>
       <% } else { %>
-        <form class="form" action="/signin" method="POST">
+        <form class="form" action="/login" method="POST">
           <table class="table-small">
             <tbody>
               <tr>
@@ -37,7 +37,7 @@
             </tbody>
           </table>
           <div style="vertical-align: middle">
-            <button type="submit" class="btn btn-primary btn-sm">Sign in</button>
+            <button type="submit" class="btn btn-primary btn-sm">Log in</button>
           </div>
           <div class="mt-3" style="height: 40px">
             <% if (invalid) { %>

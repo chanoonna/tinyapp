@@ -8,12 +8,12 @@ const generateCode = function(length, db) {
   return result;
 };
 
-const checkCookie = function(session, users) {
-  if (!session || users.findUserByID(session) === undefined) {
+const checkCookie = function(idInSession, users) {
+  if (!idInSession || users.findUserByID(idInSession) === undefined) {
     return undefined;
   }
 
-  return users.getUser(session);
+  return users.getUser(idInSession);
 };
 
 const getMyList = function(user, db) {

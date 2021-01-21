@@ -1,10 +1,10 @@
+const PORT = 8080;
+const bcrypt = require('bcrypt');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieSession = require('cookie-session');
-const PORT = 8080;
 const URLDataBaseClass = require('./db/urlDatabase');
 const UserDataBaseClass = require('./db/userDatabase');
-const bcrypt = require('bcrypt');
 const {
   checkCookie,
   getMyList,
@@ -34,7 +34,7 @@ app.get('/urls.json', (req, res) => {
   const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
   const myList = getMyList(user, urls);
@@ -49,7 +49,7 @@ app.get('/urls', (req, res) => {
   const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
   const myList = getMyList(user, urls);
@@ -65,7 +65,7 @@ app.get('/urls/new', (req, res) => {
   const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
   res.render('urls_new', { user, });
@@ -75,7 +75,7 @@ app.get('/denied', (req, res) => {
   const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
 
@@ -86,7 +86,7 @@ app.get('/urls/:shortURL', (req, res) => {
   const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
 
@@ -112,7 +112,7 @@ app.get('/signup', (req, res) => {
   const user = checkCookie(req.session.user, users);
 
   if (user !== undefined) {
-    res.status(200).redirect('/signin');
+    res.status(200).redirect('/login');
     return;
   }
 
@@ -120,10 +120,10 @@ app.get('/signup', (req, res) => {
   res.render('urls_signup', templateVars);
 });
 
-app.get('/signin', (req, res) => {
+app.get('/login', (req, res) => {
   const user = checkCookie(req.session.user, users);
   const templateVars = { user, invalid: false };
-  res.render('urls_signin', templateVars);
+  res.render('urls_login', templateVars);
 });
 
 app.get('*', (req, res) => {
@@ -134,7 +134,7 @@ app.post('/urls/new', (req, res) => {
   const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
 
@@ -150,7 +150,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
 
@@ -170,7 +170,7 @@ app.post('/urls/:shortURL/update', (req, res) => {
   const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
-    res.status(403).redirect('/signin');
+    res.status(403).redirect('/login');
     return;
   }
 
@@ -188,21 +188,28 @@ app.post('/urls/:shortURL/update', (req, res) => {
   res.status(200).redirect('/urls');
 });
 
-app.post('/signin', (req, res) => {
+app.post('/login', (req, res) => {
   const email = req.body.email;
   const pass = req.body.password;
   const user = users.findUserByEmail(email);
   
-  if (user === undefined || !bcrypt.compareSync(pass, user.password)) {
-    res.status(403).render('urls_signin', { user: undefined, invalid: true });
+  if (user === undefined) {
+    res.status(401).render('urls_loing', { user, invalid: true });
     return;
-  } else {
-    req.session.user = user.getID();
-    res.redirect('/urls');
   }
+  
+  bcrypt.compare(pass, user.password)
+    .then(result => {
+      if (!result) {
+        res.status(401).render('urls_login', { user: undefined, invalid: true });
+        return;
+      }
+      req.session.user = user.getID();
+      res.redirect('/urls');
+    });
 });
 
-app.post('/signout', (req, res) => {
+app.post('/logout', (req, res) => {
   req.session = null;
   res.status(200).redirect('/urls');
 });
@@ -216,15 +223,22 @@ app.post('/signup', (req, res) => {
   if (users.findUserByEmail(email) !== undefined) {
     res.status(400).render('urls_signup', { email: true, other: false, user: undefined });
     return;
-  } else if (pass1 !== pass2 || pass1.length === 0 || email.length === 0) {
+  }
+  if (pass1 !== pass2 || pass1.length === 0 || email.length === 0) {
     res.status(400).render('urls_signup', { email: false, other: true, user: prevuser, });
     return;
-  } else {
-    const hash = bcrypt.hashSync(pass1, 10);
+  }
+
+  bcrypt.hash(pass1, 10, (err, hash) => {
+    if (err) {
+      res.status(500).send('Unexpected error.');
+      return;
+    }
+
     const user = users.addUser(email, hash);
     req.session.user = user.getID();
     res.status(200).redirect('/urls');
-  }
+  });
 });
 
 app.listen(PORT, () => {

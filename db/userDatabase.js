@@ -1,4 +1,6 @@
-const { generateCode } = require('../src/helper');
+const {
+  generateCode,
+} = require('../src/helper');
 
 class TinyUser {
   constructor(id, email, password) {
@@ -58,17 +60,17 @@ class UserDataBase {
   }
   
   findUserByID(id) {
-    Object.prototype.hasOwnProperty.call(this.users, id);
     return Object.prototype.hasOwnProperty.call(this.users, id) ? this.users[id] : undefined;
   }
 
   findUserByEmail(email) {
-    for (const id in this.users) {
-      if (this.users[id].email === email) {
-        return this.users[id];
+    let userFound = undefined;
+    Object.keys(this.users).forEach(user => {
+      if (this.users[user].getEmail() === email) {
+        userFound = this.users[user];
       }
-    }
-    return undefined;
+    });
+    return userFound;
   }
 }
 
