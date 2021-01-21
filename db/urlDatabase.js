@@ -3,30 +3,30 @@ const { generateCode } = require('../src/helper');
 class URLDataBase {
   constructor() {
     this.urls = {};
-  };
+  }
 
-  addURL = function (longURL) {
-    const url = generateCode(6, this.urls);
-    this.urls[url] = longURL;
-    return url;
-  };
-  
-  delURL = function (shortURL) {
-    delete this.urls[shortURL];
-  };
-  
-  fixURL = function (shortURL, longURL) {
-    this.urls[shortURL] = longURL;
+  addURL(longURL, userID) {
+    const shortURL = generateCode(6, this.urls);
+    this.urls[shortURL] = { longURL, userID, };
+    return shortURL;
   }
   
-  getDB = function () {
-    return { ...this.urls };
-  };
+  delURL(shortURL) {
+    delete this.urls[shortURL];
+  }
   
-  getURL = function (shortURL) {
-    return this.urls[shortURL];
-  };
-};
+  fixURL(shortURL, longURL) {
+    this.urls[shortURL].longURL = longURL;
+  }
+  
+  getDB() {
+    return { ...this.urls };
+  }
+  
+  getURL(shortURL) {
+    return this.urls[shortURL].longURL;
+  }
+}
 
 module.exports = {
   URLDataBase,

@@ -5,51 +5,64 @@ class TinyUser {
     this.id = id;
     this.email = email;
     this.password = password;
-  };
+    this.urls = {};
+  }
 
-  getID = function() {
+  getID() {
     return this.id;
-  };
+  }
 
-  getEmail = function() {
+  getEmail() {
     return this.email;
   }
-};
+
+  getList() {
+    return this.urls;
+  }
+
+  addURL(shortURL) {
+    this.urls[shortURL] = shortURL;
+  }
+
+  delURL(shortURL) {
+    delete this.urls[shortURL];
+  }
+}
 
 class UserDataBase {
   constructor() {
     this.users = {};
-  };
+  }
 
-  addUser = function(email, password) {
+  addUser(email, password) {
     const id = generateCode(10, this.users);
     const user = new TinyUser(id, email, password);
     this.users[id] = user;
     return user;
-  };
+  }
 
-  delUser = function(id) {
+  delUser(id) {
     delete this.users[id];
-  };
+  }
 
-  fixUser = function(id, key, update) {
+  fixUser(id, key, update) {
     this.users[id][key] = update;
-  };
+  }
 
-  getDB = function() {
+  getDB() {
     return { ...this.users };
-  };
+  }
 
-  getUser = function(id) {
+  getUser(id) {
     return this.users[id];
-  };
+  }
   
-  findUserByID = function(id) {
+  findUserByID(id) {
     Object.prototype.hasOwnProperty.call(this.users, id);
     return Object.prototype.hasOwnProperty.call(this.users, id) ? this.users[id] : undefined;
   }
 
-  findUserByEmail = function(email) {
+  findUserByEmail(email) {
     for (const id in this.users) {
       if (this.users[id].email === email) {
         return this.users[id];
@@ -57,7 +70,7 @@ class UserDataBase {
     }
     return undefined;
   }
-};
+}
 
 module.exports = {
   UserDataBase,

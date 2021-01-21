@@ -17,7 +17,7 @@
           <button class="btn btn-outline-dark btn-sm" type="submit">Sign up</button>
         </form>
       <% } else { %>
-        <a>Signed in as: <b><%= user %></b></a>
+        <a>Signed in as: <b><%= user.getEmail() %></b></a>
         <form class="form-inline my-2 my-lg-0 ml-2" action="/signout" method="POST">
           <button class="btn btn-outline-primary btn-sm" type="submit">Sign out</button>
         </form>
