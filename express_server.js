@@ -117,12 +117,11 @@ app.post('/signin', (req, res) => {
   const user = users.findUserByEmail(email);
   
   if (user === undefined || user.password !== password) {
-    res.render('urls_signin', { user: undefined, invalid: true });
+    res.status(403).render('urls_signin', { user: undefined, invalid: true });
     return;
   } else {
     res.cookie('id', user.id);
-    const templateVars = { urls: urls.getDB(), user: user.getEmail() };
-    res.render('urls_index', templateVars);
+    res.redirect('/urls');
   }
 });
 
