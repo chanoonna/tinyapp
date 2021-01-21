@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const PORT = 8080;
 const URLDataBaseClass = require('./db/urlDatabase');
 const UserDataBaseClass = require('./db/userDatabase');
@@ -14,7 +14,10 @@ const server = function() {
   const server = express();
   server.set('view engine', 'ejs');
   server.use(bodyParser.urlencoded({extended: true}));
-  server.use(cookieParser());
+  server.use(cookieSession({
+    name: 'session',
+    keys: ['chicken'],
+  }));
 
   return server;
 };
@@ -28,7 +31,14 @@ app.get('/', (req, res) => {
 });
 
 app.get('/urls.json', (req, res) => {
-  res.json(urls.getDB());
+  const user = checkCookie(req.session.user, users);
+
+  if (user === undefined) {
+    res.status(403).redirect('/signin');
+    return;
+  }
+  const myList = getMyList(user, urls);
+  res.json(myList);
 });
 
 app.get('/hello', (req, res) => {
@@ -36,7 +46,7 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -52,7 +62,7 @@ app.get('/u/:shortURL', (req, res) => {
 });
 
 app.get('/urls/new', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -62,7 +72,7 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.get('/denied', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
 
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -73,7 +83,7 @@ app.get('/denied', (req, res) => {
 });
 
 app.get('/urls/:shortURL', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -82,7 +92,7 @@ app.get('/urls/:shortURL', (req, res) => {
 
   const shortURL = req.params.shortURL;
 
-  if (user.id !== urls.urls[shortURL].userID) {
+  if (user.getID() !== urls.getDB()[shortURL].userID) {
     res.status(403).redirect('/denied');
     return;
   }
@@ -99,19 +109,19 @@ app.get('/urls/:shortURL', (req, res) => {
 });
 
 app.get('/signup', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
 
   if (user !== undefined) {
     res.status(200).redirect('/signin');
     return;
   }
 
-  const templateVars = { user, email: false, other: false };
+  const templateVars = { user: undefined, email: false, other: false };
   res.render('urls_signup', templateVars);
 });
 
 app.get('/signin', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
   const templateVars = { user, invalid: false };
   res.render('urls_signin', templateVars);
 });
@@ -121,7 +131,7 @@ app.get('*', (req, res) => {
 });
 
 app.post('/urls/new', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -131,12 +141,13 @@ app.post('/urls/new', (req, res) => {
   const longURL = req.body.longURL;
   const shortURL = urls.addURL(longURL, user.getID());
   user.addURL(shortURL);
+
   const templateVars = { shortURL, longURL, user, };
   res.render('urls_show', templateVars);
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -152,12 +163,11 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
   urls.delURL(shortURL);
   user.delURL(shortURL);
-  const templateVars = { urls: urls.getDB(), user, };
-  res.render('urls_index', templateVars);
+  res.status(200).redirect('/urls');
 });
 
 app.post('/urls/:shortURL/update', (req, res) => {
-  const user = checkCookie(req.cookies['id'], users);
+  const user = checkCookie(req.session.user, users);
   
   if (user === undefined) {
     res.status(403).redirect('/signin');
@@ -187,13 +197,13 @@ app.post('/signin', (req, res) => {
     res.status(403).render('urls_signin', { user: undefined, invalid: true });
     return;
   } else {
-    res.cookie('id', user.id);
+    req.session.user = user.getID();
     res.redirect('/urls');
   }
 });
 
 app.post('/signout', (req, res) => {
-  res.clearCookie('id');
+  req.session = null;
   res.status(200).redirect('/urls');
 });
 
@@ -201,18 +211,18 @@ app.post('/signup', (req, res) => {
   const email = req.body.email;
   const pass1 = req.body.password1;
   const pass2 = req.body.password2;
-  const prevuser = checkCookie(req.cookies['id'], users);
+  const prevuser =  checkCookie(req.session.user, users);
 
   if (users.findUserByEmail(email) !== undefined) {
-    res.status(400).render('urls_signup', { email: true, other: false, user: prevuser });
+    res.status(400).render('urls_signup', { email: true, other: false, user: undefined });
     return;
   } else if (pass1 !== pass2 || pass1.length === 0 || email.length === 0) {
     res.status(400).render('urls_signup', { email: false, other: true, user: prevuser, });
     return;
   } else {
-    const hash = bcrypt.hashSync(pass1, 10)
+    const hash = bcrypt.hashSync(pass1, 10);
     const user = users.addUser(email, hash);
-    res.cookie('id', user.id);
+    req.session.user = user.getID();
     res.status(200).redirect('/urls');
   }
 });
