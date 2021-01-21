@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const PORT = 8080;
 const URLDataBaseClass = require('./db/urlDatabase');
 const UserDataBaseClass = require('./db/userDatabase');
+const bcrypt = require('bcrypt');
 const {
   checkCookie,
   getMyList,
@@ -179,10 +180,10 @@ app.post('/urls/:shortURL/update', (req, res) => {
 
 app.post('/signin', (req, res) => {
   const email = req.body.email;
-  const password = req.body.password;
+  const pass = req.body.password;
   const user = users.findUserByEmail(email);
   
-  if (user === undefined || user.password !== password) {
+  if (user === undefined || !bcrypt.compareSync(pass, user.password)) {
     res.status(403).render('urls_signin', { user: undefined, invalid: true });
     return;
   } else {
@@ -198,18 +199,19 @@ app.post('/signout', (req, res) => {
 
 app.post('/signup', (req, res) => {
   const email = req.body.email;
-  const password1 = req.body.password1;
-  const password2 = req.body.password2;
+  const pass1 = req.body.password1;
+  const pass2 = req.body.password2;
   const prevuser = checkCookie(req.cookies['id'], users);
 
   if (users.findUserByEmail(email) !== undefined) {
     res.status(400).render('urls_signup', { email: true, other: false, user: prevuser });
     return;
-  } else if (password1 !== password2 || password1.length === 0 || email.length === 0) {
+  } else if (pass1 !== pass2 || pass1.length === 0 || email.length === 0) {
     res.status(400).render('urls_signup', { email: false, other: true, user: prevuser, });
     return;
   } else {
-    const user = users.addUser(email, password1);
+    const hash = bcrypt.hashSync(pass1, 10)
+    const user = users.addUser(email, hash);
     res.cookie('id', user.id);
     res.status(200).redirect('/urls');
   }
