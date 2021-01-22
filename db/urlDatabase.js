@@ -7,12 +7,15 @@ class URLDataBase {
 
   addURL(longURL, userID) {
     const shortURL = generateCode(6, this.urls);
+    const date = new Date().toLocaleString();
 
     this.urls[shortURL] = {
       longURL,
       userID,
+      date,
       visited: {
-        count: 0,
+        visit: 0,
+        visitU: 0,
         visitors: {},
       }
     };
@@ -20,12 +23,25 @@ class URLDataBase {
     return shortURL;
   }
 
-  addCount(shortURL) {
-    this.urls[shortURL].visited.count += 1;
+  addVisit(shortURL) {
+    this.urls[shortURL].visited.visit += 1;
   }
 
-  getCount(shortURL) {
-    return this.urls[shortURL].visited.count;
+  addVisitU(shortURL) {
+    this.urls[shortURL].visited.visit += 1;
+    this.urls[shortURL].visited.visitU += 1;
+  }
+
+  getVisit(shortURL) {
+    return this.urls[shortURL].visited.visit;
+  }
+
+  getVisitU(shortURL) {
+    return this.urls[shortURL].visited.visitU;
+  }
+
+  getDate(shortURL) {
+    return this.urls[shortURL].date;
   }
 
   addVisitor(shortURL, visitorID) {
@@ -34,7 +50,7 @@ class URLDataBase {
   }
 
   getVisitors(shortURL) {
-    if (this.getCount(shortURL) === 0) {
+    if (this.getVisit(shortURL) === 0) {
       return undefined;
     }
 
