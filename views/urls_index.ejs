@@ -19,11 +19,9 @@
         <tr class="table-active">
           <th scope="col">Short URL</th>
           <th scope="col">Long URL</th>
-          <th style="display: table-cell; text-align: center; vertical-align: middle;">Visits</th>
-          <th style="display: table-cell; text-align: center; vertical-align: middle;">Unique Visits</th>
+          <th style="display: table-cell; text-align: center; vertical-align: middle;">Visited</th>
           <th style="display: table-cell; text-align: center; vertical-align: middle;" scope="col">Edit</th>
           <th style="display: table-cell; text-align: center; vertical-align: middle;" scope="col">Delete</th>
-          <th style="display: table-cell; text-align: center; vertical-align: middle;">Created</th>
         </tr>
       </thead>
       <tbody>
@@ -31,11 +29,9 @@
           <tr>
             <td><%= url %></td>
             <td><%= urls[url].longURL %></td>
-            <td style="display: table-cell; text-align: center; vertical-align: middle;"><%= urls[url].visit %></td>
-            <td style="display: table-cell; text-align: center; vertical-align: middle;"><%= urls[url].visitU %></td>
+            <td style="display: table-cell; text-align: center; vertical-align: middle;"><%= urls[url].visited %></td>
             <td style="display: table-cell; text-align: center; vertical-align: middle;"><form method="GET" action="/urls/<%= url %>"><button class="btn btn-outline-primary"></button></form>
             <td style="display: table-cell; text-align: center; vertical-align: middle;"><form method="POST" action="/urls/<%= url %>?_method=DELETE"><button class="btn btn-outline-danger"></button></form>
-            <td style="display: table-cell; text-align: center; vertical-align: middle;"><%= urls[url].date %></td>
           </tr>
         <% } %>
       </tbody>
