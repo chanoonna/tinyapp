@@ -31,7 +31,7 @@ const urls = new URLDataBaseClass.URLDataBase();             // URL Database
 const users = new UserDataBaseClass.UserDataBase();          // User Database
 
 app.get('/urls.json', (req, res) => {
-  const user = checkCookie(req.session.id, users);           // Undefined for no session or no matching session in DB, or user object for matching session
+  const user = checkCookie(req.session.id, users);           // Undefined for no session or no matching session in DB, or returns user for matching session
 
   if (!user) {
     res.status(403).redirect('/login');
@@ -50,7 +50,7 @@ app.get('/urls', (req, res) => {
     return;
   }
 
-  const myList = getMyList(user, urls);
+  const myList = getMyList(user, urls);                                 // getMyList cuts off unnecessary info in DB
   const templateVars = { urls: myList, user, };
   res.render('urls_index', templateVars);
 });
@@ -64,13 +64,13 @@ app.get('/u/:shortURL', (req, res) => {
     return;
   }
 
-  if (!user) {
+  if (!user) {                                                          // Non logged-in user counts for link
     urls.addVisit(shortURL);
     res.redirect(urls.getURL(shortURL));
     return;
   }
 
-  urls.addVisitU(shortURL);
+  urls.addVisitU(shortURL);                                            // Unique user counts and timestamp for link
   urls.addVisitor(shortURL, user.getID());
   res.redirect(urls.getURL(shortURL));
 });
@@ -86,7 +86,7 @@ app.get('/urls/new', (req, res) => {
   res.render('urls_new', { user, });
 });
 
-app.get('/denied', (req, res) => {
+app.get('/denied', (req, res) => {                                    // When the user tries to access edit page without authorization
   const user = checkCookie(req.session.id, users);
 
   if (!user) {
@@ -99,6 +99,7 @@ app.get('/denied', (req, res) => {
 
 app.get('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
+
   if (!Object.prototype.hasOwnProperty.call(urls.getDB(), shortURL)) {
     res.status(404).send('404 page not found');
     return;
@@ -111,7 +112,7 @@ app.get('/urls/:shortURL', (req, res) => {
     return;
   }
 
-  if (user.getID() !== urls.getDB()[shortURL].userID) {
+  if (user.getID() !== urls.getDB()[shortURL].userID) {             // User tries to access another user's edit page.
     res.status(403).redirect('/denied');
     return;
   }
@@ -147,7 +148,7 @@ app.get('*', (req, res) => {
   res.status(404).send('404 page not found');
 });
 
-app.post('/urls', (req, res) => {
+app.post('/urls/new', (req, res) => {
   const user = checkCookie(req.session.id, users);
   
   if (!user) {
@@ -156,8 +157,8 @@ app.post('/urls', (req, res) => {
   }
 
   const longURL = req.body.longURL;
-  const shortURL = urls.addURL(longURL, user.getID());
-  user.addURL(shortURL);
+  const shortURL = urls.addURL(longURL, user.getID());            // Add a link to DB
+  user.addURL(shortURL);                                          // Add a link to UserDB
 
   res.redirect(`/urls/${shortURL}`);
 });
@@ -172,7 +173,7 @@ app.delete('/urls/:shortURL', (req, res) => {
 
   const shortURL = req.params.shortURL;
 
-  if (urls.urls[shortURL].userID !== user.getID()) {
+  if (urls.urls[shortURL].userID !== user.getID()) {              // User's can't delete another user's link
     res.status(403).redirect('/denied');
     return;
   }
@@ -209,7 +210,7 @@ app.post('/login', (req, res) => {
   const pass = req.body.password;
   const user = users.findUserByEmail(email);
   
-  if (!user) {
+  if (!user) {                                                                  // E-mail doesn't exist
     res.status(401).render('urls_login', { user, invalid: true });
     return;
   }
@@ -217,7 +218,7 @@ app.post('/login', (req, res) => {
   bcrypt.compare(pass, user.password)
     .then(result => {
       if (!result) {
-        res.status(401).render('urls_login', { user: undefined, invalid: true });
+        res.status(401).render('urls_login', { user: undefined, invalid: true }); // Password not match
         return;
       }
       req.session.id = user.getID();
@@ -234,13 +235,13 @@ app.post('/signup', (req, res) => {
   const email = req.body.email;
   const pass1 = req.body.password1;
   const pass2 = req.body.password2;
-  const prevuser =  checkCookie(req.session.id, users);
+  const prevuser =  checkCookie(req.session.id, users);                     // Check if already logged in
 
-  if (users.findUserByEmail(email) !== undefined) {
+  if (users.findUserByEmail(email) !== undefined) {                         // E-mail already exist
     res.status(400).render('urls_signup', { email: true, other: false, user: undefined });
     return;
   }
-  if (pass1 !== pass2 || pass1.length === 0 || email.length === 0) {
+  if (pass1 !== pass2 || pass1.length === 0 || email.length === 0) {        // Inconsistent password
     res.status(400).render('urls_signup', { email: false, other: true, user: prevuser, });
     return;
   }
