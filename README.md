@@ -37,3 +37,4 @@ TinyApp is a full stack web application built with Node and Express that allows 
 - Browsing another user's URLs with less detail.
 - Listing top 10 most used URLs.
 - Total count of the entire URLs.
+- Changing User infomation (email, password).
