@@ -65,12 +65,12 @@ app.get('/u/:shortURL', (req, res) => {
   }
 
   if (!user) {
-    urls.addCount(shortURL);
+    urls.addVisit(shortURL);
     res.redirect(urls.getURL(shortURL));
     return;
   }
 
-  urls.addCount(shortURL);
+  urls.addVisitU(shortURL);
   urls.addVisitor(shortURL, user.getID());
   res.redirect(urls.getURL(shortURL));
 });
@@ -117,9 +117,11 @@ app.get('/urls/:shortURL', (req, res) => {
   }
   
   const longURL = urls.getURL(shortURL);
-  const visited = urls.getCount(shortURL);
+  const visit = urls.getVisit(shortURL);
+  const visitU = urls.getVisitU(shortURL);
   const visitors = urls.getVisitors(shortURL);
-  const templateVars = { shortURL, longURL, user, visited, visitors, };
+  const date = urls.getDate(shortURL);
+  const templateVars = { shortURL, longURL, user, visit, visitU, visitors, date };
   res.render('urls_show', templateVars);
 });
 
@@ -145,7 +147,7 @@ app.get('*', (req, res) => {
   res.status(404).send('404 page not found');
 });
 
-app.post('/urls/new', (req, res) => {
+app.post('/urls', (req, res) => {
   const user = checkCookie(req.session.id, users);
   
   if (!user) {
