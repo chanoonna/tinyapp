@@ -18,7 +18,7 @@ const checkCookie = function(idInSession, users) {
 
 const getMyList = function(user, db) {
   const list = {};
-  Object.keys(user.getList()).forEach(url => list[url] = db.getURL(url));
+  Object.keys(user.getList()).forEach(url => list[url] = { longURL: db.getURL(url), visited: db.getCount(url) });
   return list;
 };
 

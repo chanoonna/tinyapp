@@ -9,16 +9,16 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
-      <% if (user === undefined) { %>
-        <form class="form-inline my-2 my-lg-0 mx-1" action="/login" method="GET">
+      <% if (!user) { %>
+        <form class="form-inline my-2 my-lg-0 mx-1" method="GET" action="/login">
           <button class="btn btn-primary btn-sm" type="submit">Log in</button>
         </form>
-        <form class="form-inline my-2 my-lg-0 mx-1" action="/signup" method="GET">
+        <form class="form-inline my-2 my-lg-0 mx-1" method="GET" action="/signup">
           <button class="btn btn-outline-dark btn-sm" type="submit">Sign up</button>
         </form>
       <% } else { %>
-        <a>Signed in as: <b><%= user.getEmail() %></b></a>
-        <form class="form-inline my-2 my-lg-0 ml-2" action="/logout" method="POST">
+        <a>Logged in as: <b><%= user.getEmail(); %></b></a>
+        <form class="form-inline my-2 my-lg-0 ml-2" method="POST" action="/logout?_method=DELETE">
           <button class="btn btn-outline-primary btn-sm" type="submit">Log out</button>
         </form>
       <% } %>

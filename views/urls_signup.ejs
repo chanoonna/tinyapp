@@ -12,40 +12,47 @@
   <div class="card text-center mb-3" style="border: 0px;">
     <h5 class="mt-2">Sign up</h5>
     <div class="d-flex justify-content-center">
-      <form class="form" action="/signup" method="POST">
-        <table class="table-small">
-          <tbody>
-            <tr>
-              <td style="text-align: right">
-                <label class="mb-0" for="email">E-mail:</label>
-              </td>
-              <td>
-                <input class="form" type="email" name="email" style="vertical-align: middle; width: 300px; margin: 1em; border-radius: 5px;">
-              </td>
-            </tr>
-            <tr>
-              <td style="text-align: right">
-                <label class="my-2" for="password1">Password:</label><br><br>
-                <label class="my-2" for="password2">Verify Password:</label>
-              </td>
-              <td>
-                <input class="form" type="password" name="password1" style="vertical-align: middle; width: 300px; margin: 1em; border-radius: 5px;"><br>
-                <input class="form" type="password" name="password2" style="vertical-align: middle; width: 300px; margin: 1em; border-radius: 5px;">
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div style="vertical-align: middle">
-          <button type="submit" class="btn btn-primary btn-sm">Sign up</button>
+      <% if (!user) { %>
+        <form class="form" action="/signup" method="POST">
+          <table class="table-small">
+            <tbody>
+              <tr>
+                <td style="text-align: right">
+                  <label class="mb-0" for="email">E-mail:</label>
+                </td>
+                <td>
+                  <input class="form" type="email" name="email" style="vertical-align: middle; width: 300px; margin: 1em; border-radius: 5px;">
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: right">
+                  <label class="my-2" for="password1">Password:</label><br><br>
+                  <label class="my-2" for="password2">Verify Password:</label>
+                </td>
+                <td>
+                  <input class="form" type="password" name="password1" style="vertical-align: middle; width: 300px; margin: 1em; border-radius: 5px;"><br>
+                  <input class="form" type="password" name="password2" style="vertical-align: middle; width: 300px; margin: 1em; border-radius: 5px;">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="vertical-align: middle">
+            <button type="submit" class="btn btn-primary btn-sm">Sign up</button>
+          </div>
+          <div class="mt-3" style="height: 40px">
+            <% if (email) { %>
+              <p style="font-size: 12px; color: red">E-mail already registered.</p>
+            <% } else if (other) { %>
+              <p style="font-size: 12px; color: red">Provided information is incorrect.</p>
+            <% } %>
+          </div>
+        </form>
+      <% } else { %>
+        <div class="d-flex flex-column">
+          <h5>It seems like you are already with us!</h5>
+          <p><%= user.getEmail(); %></p>
         </div>
-        <div class="mt-3" style="height: 40px">
-          <% if (email) { %>
-            <p style="font-size: 12px; color: red">E-mail already registered.</p>
-          <% } else if (other) { %>
-            <p style="font-size: 12px; color: red">Provided information is incorrect.</p>
-          <% } %>
-        </div>
-      </form>
+      <% } %>
     </div>
   </div>
   <div class="card-footer text-muted"></div>

@@ -3,8 +3,10 @@ const bcrypt = require('bcrypt');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieSession = require('cookie-session');
+const methodOverride = require('method-override');
 const URLDataBaseClass = require('./db/urlDatabase');
 const UserDataBaseClass = require('./db/userDatabase');
+
 const {
   checkCookie,
   getMyList,
@@ -14,67 +16,80 @@ const server = function() {
   const server = express();
   server.set('view engine', 'ejs');
   server.use(bodyParser.urlencoded({extended: true}));
+  server.use(methodOverride('_method'));
+
   server.use(cookieSession({
     name: 'session',
-    keys: ['chicken'],
+    keys: ['fried chicken'],
   }));
 
   return server;
 };
 
 const app = server();
-const urls = new URLDataBaseClass.URLDataBase();                  // URL Database
-const users = new UserDataBaseClass.UserDataBase();               // User Database
-
-app.get('/', (req, res) => {
-  res.send('Hello.');
-});
+const urls = new URLDataBaseClass.URLDataBase();             // URL Database
+const users = new UserDataBaseClass.UserDataBase();          // User Database
 
 app.get('/urls.json', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);           // Undefined for no session or no matching session in DB, or user object for matching session
 
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
+
   const myList = getMyList(user, urls);
   res.json(myList);
 });
 
-app.get('/hello', (req, res) => {
-  res.send('<html><body>Hello <b>World</b></body></html>\n');
-});
-
 app.get('/urls', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);
 
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
+
   const myList = getMyList(user, urls);
   const templateVars = { urls: myList, user, };
   res.render('urls_index', templateVars);
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  res.redirect(urls.getURL(req.params.shortURL));
+  const user = checkCookie(req.session.id, users);
+  const shortURL = req.params.shortURL;
+
+  if (!Object.prototype.hasOwnProperty.call(urls.getDB(), shortURL)) {
+    res.status(404).send('404 page not found');
+    return;
+  }
+
+  if (!user) {
+    urls.addCount(shortURL);
+    res.redirect(urls.getURL(shortURL));
+    return;
+  }
+
+  urls.addCount(shortURL);
+  urls.addVisitor(shortURL, user.getID());
+  res.redirect(urls.getURL(shortURL));
 });
 
 app.get('/urls/new', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);
 
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
+
   res.render('urls_new', { user, });
 });
 
 app.get('/denied', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);
 
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
@@ -83,36 +98,36 @@ app.get('/denied', (req, res) => {
 });
 
 app.get('/urls/:shortURL', (req, res) => {
-  const user = checkCookie(req.session.user, users);
-  
-  if (user === undefined) {
-    res.status(403).redirect('/login');
+  const shortURL = req.params.shortURL;
+  if (!Object.prototype.hasOwnProperty.call(urls.getDB(), shortURL)) {
+    res.status(404).send('404 page not found');
     return;
   }
 
-  const shortURL = req.params.shortURL;
+  const user = checkCookie(req.session.id, users);
+  
+  if (!user) {
+    res.status(403).redirect('/login');
+    return;
+  }
 
   if (user.getID() !== urls.getDB()[shortURL].userID) {
     res.status(403).redirect('/denied');
     return;
   }
-
-  if (!Object.prototype.hasOwnProperty.call(urls.getDB(), shortURL)) {
-    res.statusCode = 404;
-    res.send('404 page not found');
-    return;
-  }
-
+  
   const longURL = urls.getURL(shortURL);
-  const templateVars = { shortURL, longURL, user, };
+  const visited = urls.getCount(shortURL);
+  const visitors = urls.getVisitors(shortURL);
+  const templateVars = { shortURL, longURL, user, visited, visitors, };
   res.render('urls_show', templateVars);
 });
 
 app.get('/signup', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);
 
-  if (user !== undefined) {
-    res.status(200).redirect('/login');
+  if (user) {
+    res.render('urls_signup', { user, });
     return;
   }
 
@@ -121,7 +136,7 @@ app.get('/signup', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);
   const templateVars = { user, invalid: false };
   res.render('urls_login', templateVars);
 });
@@ -131,9 +146,9 @@ app.get('*', (req, res) => {
 });
 
 app.post('/urls/new', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+  const user = checkCookie(req.session.id, users);
   
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
@@ -142,14 +157,13 @@ app.post('/urls/new', (req, res) => {
   const shortURL = urls.addURL(longURL, user.getID());
   user.addURL(shortURL);
 
-  const templateVars = { shortURL, longURL, user, };
-  res.render('urls_show', templateVars);
+  res.redirect(`/urls/${shortURL}`);
 });
 
-app.post('/urls/:shortURL/delete', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+app.delete('/urls/:shortURL', (req, res) => {
+  const user = checkCookie(req.session.id, users);
   
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
@@ -166,10 +180,10 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.status(200).redirect('/urls');
 });
 
-app.post('/urls/:shortURL/update', (req, res) => {
-  const user = checkCookie(req.session.user, users);
+app.patch('/urls/:shortURL', (req, res) => {
+  const user = checkCookie(req.session.id, users);
   
-  if (user === undefined) {
+  if (!user) {
     res.status(403).redirect('/login');
     return;
   }
@@ -193,8 +207,8 @@ app.post('/login', (req, res) => {
   const pass = req.body.password;
   const user = users.findUserByEmail(email);
   
-  if (user === undefined) {
-    res.status(401).render('urls_loing', { user, invalid: true });
+  if (!user) {
+    res.status(401).render('urls_login', { user, invalid: true });
     return;
   }
   
@@ -204,12 +218,12 @@ app.post('/login', (req, res) => {
         res.status(401).render('urls_login', { user: undefined, invalid: true });
         return;
       }
-      req.session.user = user.getID();
-      res.redirect('/urls');
+      req.session.id = user.getID();
+      res.status(200).redirect('/urls');
     });
 });
 
-app.post('/logout', (req, res) => {
+app.delete('/logout', (req, res) => {
   req.session = null;
   res.status(200).redirect('/urls');
 });
@@ -218,7 +232,7 @@ app.post('/signup', (req, res) => {
   const email = req.body.email;
   const pass1 = req.body.password1;
   const pass2 = req.body.password2;
-  const prevuser =  checkCookie(req.session.user, users);
+  const prevuser =  checkCookie(req.session.id, users);
 
   if (users.findUserByEmail(email) !== undefined) {
     res.status(400).render('urls_signup', { email: true, other: false, user: undefined });
@@ -236,7 +250,7 @@ app.post('/signup', (req, res) => {
     }
 
     const user = users.addUser(email, hash);
-    req.session.user = user.getID();
+    req.session.id = user.getID();
     res.status(200).redirect('/urls');
   });
 });
